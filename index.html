@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VN Stock Dashboard</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f4f4; color: #111; min-height: 100vh; }
+
+/* ── Header ── */
+.hdr { background: #fff; border-bottom: 1px solid #e0e0e0; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.hdr-left { display: flex; align-items: center; gap: 10px; }
+.logo { font-size: 16px; font-weight: 700; color: #111; letter-spacing: -0.3px; }
+.badge { font-size: 10px; padding: 3px 9px; border-radius: 20px; font-weight: 600; }
+.badge-live { background: #d4edda; color: #155724; }
+.badge-err  { background: #f8d7da; color: #721c24; }
+.badge-load { background: #fff3cd; color: #856404; }
+.hdr-right { text-align: right; }
+.upd-lbl  { font-size: 11px; color: #888; }
+.countdown { font-size: 12px; color: #444; font-weight: 500; margin-top: 1px; }
+
+/* ── Tab bar ── */
+.tab-bar { background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; padding: 0 20px; }
+.tab-btn { font-size: 13px; padding: 10px 18px; cursor: pointer; color: #666; border: none; border-bottom: 2px solid transparent; background: none; transition: color 0.15s; }
+.tab-btn:hover { color: #333; }
+.tab-btn.active { color: #111; border-bottom-color: #1a73e8; font-weight: 600; }
+
+/* ── Content ── */
+.content { max-width: 960px; margin: 0 auto; padding: 16px; }
+
+/* ── Setup pills & legend ── */
+.setup-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { font-size: 12px; padding: 5px 14px; border-radius: 20px; cursor: pointer; border: 1px solid #ccc; color: #555; background: #fff; transition: all 0.15s; }
+.pill:hover { border-color: #1a73e8; color: #1a73e8; }
+.pill.active { background: #e8f0fe; color: #1967d2; border-color: #1967d2; font-weight: 600; }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; }
+.leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* ── Stock grid ── */
+.stock-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+@media (max-width: 640px) { .stock-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 400px) { .stock-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.cell { border-radius: 5px; padding: 6px 7px; min-height: 60px; }
+.cell-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.cell-ticker { font-size: 12px; font-weight: 700; color: #000; }
+.cell-tf  { font-size: 9px; color: rgba(0,0,0,0.45); margin-left: 2px; }
+.cell-sig { font-size: 9px; color: rgba(0,0,0,0.6); margin-top: 3px; line-height: 1.4; }
+.cell-arrows { margin-top: 3px; display: flex; gap: 3px; }
+.arr-up   { font-size: 11px; color: #004400; }
+.arr-down { font-size: 11px; color: #880000; }
+
+/* Color classes (mapping Amibroker color names → CSS) */
+.c-magenta { background: #FF00FF; }
+.c-green   { background: #00CC44; }
+.c-orange  { background: #FFA500; }
+.c-white   { background: #F0F0F0; border: 1px solid #ddd; }
+.c-yellow  { background: #FFEE44; }
+.c-lime    { background: #AAEE44; }
+.c-cyan    { background: #00FFEE; }
+.c-red     { background: #FF3333; }
+.c-blue    { background: #4488FF; }
+
+.grid-footer { font-size: 11px; color: #999; margin-top: 10px; }
+
+/* ── Market Core ── */
+.core-wrap { background: #0a0a0a; border-radius: 10px; overflow: hidden; border: 1px solid #222; }
+.pane { position: relative; border-bottom: 1px solid #1e1e1e; overflow: hidden; }
+.pane:last-child { border-bottom: none; }
+.pane canvas { display: block; width: 100%; }
+.pane-info  { position: absolute; top: 5px; left: 8px; z-index: 2; display: flex; gap: 7px; flex-wrap: wrap; pointer-events: none; }
+.pane-right { position: absolute; top: 5px; right: 8px; z-index: 2; display: flex; gap: 5px; pointer-events: none; }
+.pi { font-size: 10px; font-family: 'Menlo','Consolas',monospace; }
+.pi-w { color: #ffffff; }
+.pi-g { color: #00ee44; }
+.pi-r { color: #ff4444; }
+.pi-y { color: #ffee44; }
+.pi-c { color: #44ffff; }
+.pi-m { color: #ff44ff; }
+
+.core-footer { font-size: 11px; color: #999; margin-top: 8px; }
+
+/* ── States ── */
+.state-msg { grid-column: 1/-1; text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<div class="hdr">
+  <div class="hdr-left">
+    <span class="logo">VN Stock Dashboard</span>
+    <span class="badge badge-load" id="badge">● Loading</span>
+  </div>
+  <div class="hdr-right">
+    <div class="upd-lbl" id="upd-lbl">Fetching data…</div>
+    <div class="countdown" id="countdown"></div>
+  </div>
+</div>
+
+<!-- ══════════════ TAB BAR ══════════════ -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('grid', this)">📊 Setup Filter Grid</button>
+  <button class="tab-btn"        onclick="switchTab('core', this)">📈 Market Core</button>
+</div>
+
+<!-- ══════════════ CONTENT ══════════════ -->
+<div class="content">
+
+  <!-- ── GRID VIEW ── -->
+  <div id="view-grid">
+    <div class="setup-bar">
+      <div class="pills" id="setup-pills"><div class="pill active">Loading…</div></div>
+      <div class="legend">
+        <div class="leg"><div class="leg-dot c-magenta"></div>Rank A</div>
+        <div class="leg"><div class="leg-dot c-green"></div>Rank B</div>
+        <div class="leg"><div class="leg-dot c-orange"></div>Rank C</div>
+        <div class="leg"><div class="leg-dot c-white"></div>Other</div>
+      </div>
+    </div>
+    <div class="stock-grid" id="stock-grid">
+      <div class="state-msg">⏳ Loading data…</div>
+    </div>
+    <div class="grid-footer" id="grid-footer"></div>
+  </div>
+
+  <!-- ── MARKET CORE VIEW ── -->
+  <div id="view-core" style="display:none;">
+    <div class="core-wrap">
+
+      <!-- Price pane -->
+      <div class="pane" id="pane-price" style="height:185px;">
+        <div class="pane-info" id="info-price">
+          <span class="pi pi-w">VNINDEX</span>
+        </div>
+        <div class="pane-right">
+          <span class="pi pi-g">● MA50</span>
+          <span class="pi pi-w">● MA100</span>
+          <span class="pi pi-y">● MA150</span>
+          <span class="pi pi-r">● MA200</span>
+        </div>
+        <canvas id="c-price"></canvas>
+      </div>
+
+      <!-- StrengthCount pane -->
+      <div class="pane" id="pane-str" style="height:85px;">
+        <div class="pane-info" id="info-str">
+          <span class="pi pi-w">StrengthCountTotal</span>
+        </div>
+        <canvas id="c-str"></canvas>
+      </div>
+
+      <!-- Breadth >50MA pane -->
+      <div class="pane" id="pane-b50" style="height:75px;">
+        <div class="pane-info" id="info-b50">
+          <span class="pi pi-w">% &gt; 50MA</span>
+        </div>
+        <canvas id="c-b50"></canvas>
+      </div>
+
+      <!-- Breadth >200MA pane -->
+      <div class="pane" id="pane-b200" style="height:75px;">
+        <div class="pane-info" id="info-b200">
+          <span class="pi pi-w">% &gt; 200MA</span>
+        </div>
+        <canvas id="c-b200"></canvas>
+      </div>
+
+      <!-- TMA pane -->
+      <div class="pane" id="pane-tma" style="height:90px;">
+        <div class="pane-info" id="info-tma">
+          <span class="pi pi-w">TMA</span>
+        </div>
+        <canvas id="c-tma"></canvas>
+      </div>
+
+    </div>
+    <div class="core-footer">VNINDEX · Market Breadth &amp; Strength · Data exported from Amibroker every 5 minutes</div>
+  </div>
+
+</div><!-- /content -->
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════════════════════════════════
+const REFRESH_MS    = 5 * 60 * 1000;   // 5-minute auto refresh
+let gridData        = null;
+let coreData        = null;
+let currentSetup    = 0;
+let currentTab      = 'grid';
+let nextRefreshAt   = 0;
+let countdownTimer  = null;
+
+// ════════════════════════════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ════════════════════════════════════════════════════════════════════════════
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('view-grid').style.display = name === 'grid' ? 'block' : 'none';
+  document.getElementById('view-core').style.display = name === 'core' ? 'block' : 'none';
+  currentTab = name;
+  if (name === 'core' && coreData) setTimeout(drawAllPanes, 60);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  DATA FETCHING
+// ════════════════════════════════════════════════════════════════════════════
+async function fetchData() {
+  const t = Date.now(); // cache-buster — forces GitHub to serve fresh file
+  try {
+    const [gRes, cRes] = await Promise.all([
+      fetch('./grid_data.json?t='    + t),
+      fetch('./market_core.json?t='  + t)
+    ]);
+    if (!gRes.ok || !cRes.ok) throw new Error('HTTP error');
+
+    gridData = await gRes.json();
+    coreData = await cRes.json();
+
+    renderGrid();
+    if (currentTab === 'core') setTimeout(drawAllPanes, 60);
+
+    setBadge('live', '● LIVE');
+    setUpdated(gridData.last_updated || '—');
+  } catch (err) {
+    console.error('Fetch error:', err);
+    setBadge('err', '● ERROR');
+  }
+  scheduleNext();
+}
+
+function scheduleNext() {
+  nextRefreshAt = Date.now() + REFRESH_MS;
+  setTimeout(fetchData, REFRESH_MS);
+}
+
+function setBadge(type, text) {
+  const el = document.getElementById('badge');
+  el.className = 'badge badge-' + type;
+  el.textContent = text;
+}
+
+function setUpdated(ts) {
+  document.getElementById('upd-lbl').textContent = 'Last updated: ' + ts;
+}
+
+// Countdown display
+function startCountdown() {
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(() => {
+    const rem = Math.max(0, nextRefreshAt - Date.now());
+    const m = Math.floor(rem / 60000);
+    const s = Math.floor((rem % 60000) / 1000);
+    document.getElementById('countdown').textContent =
+      'Next refresh in ' + m + ':' + String(s).padStart(2, '0');
+  }, 1000);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  GRID RENDERING
+// ════════════════════════════════════════════════════════════════════════════
+function renderGrid() {
+  if (!gridData) return;
+
+  // Build setup pills
+  const pillsEl = document.getElementById('setup-pills');
+  pillsEl.innerHTML = '';
+  gridData.setups.forEach((setup, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'pill' + (i === currentSetup ? ' active' : '');
+    btn.textContent = setup.name;
+    btn.onclick = () => { currentSetup = i; renderGrid(); };
+    pillsEl.appendChild(btn);
+  });
+
+  // Render stocks
+  const setup  = gridData.setups[currentSetup];
+  const gridEl = document.getElementById('stock-grid');
+  gridEl.innerHTML = '';
+
+  if (!setup || !setup.stocks || setup.stocks.length === 0) {
+    gridEl.innerHTML = '<div class="state-msg">No stocks in this setup.</div>';
+    return;
+  }
+
+  setup.stocks.forEach(s => {
+    const cell = document.createElement('div');
+    cell.className = 'cell c-' + (s.color || 'white');
+    cell.innerHTML =
+      '<div class="cell-top">'
+      + '<span class="cell-ticker">' + esc(s.ticker)    + '</span>'
+      + '<span class="cell-tf">'    + esc(s.timeframe || '') + '</span>'
+      + '</div>'
+      + '<div class="cell-sig">'    + esc(s.signal || '') + '</div>'
+      + '<div class="cell-arrows">'
+      + (s.arrow_up   ? '<span class="arr-up">▲</span>'   : '')
+      + (s.arrow_down ? '<span class="arr-down">▼</span>' : '')
+      + '</div>';
+    gridEl.appendChild(cell);
+  });
+
+  document.getElementById('grid-footer').textContent =
+    setup.stocks.length + ' stocks · watchlist filtered by volume & value · Amibroker export';
+}
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  CHART HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+function initCanvas(canvasId, paneId) {
+  const cv   = document.getElementById(canvasId);
+  const pane = document.getElementById(paneId);
+  const W    = pane.offsetWidth;
+  const H    = pane.offsetHeight;
+  const dpr  = window.devicePixelRatio || 1;
+  cv.width   = W * dpr;
+  cv.height  = H * dpr;
+  cv.style.width  = W + 'px';
+  cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+  return { ctx, W, H };
+}
+
+function hGridLines(ctx, W, H, pad, steps) {
+  ctx.strokeStyle = '#1e1e1e';
+  ctx.lineWidth   = 0.5;
+  for (let i = 1; i < steps; i++) {
+    const y = pad.t + (i / steps) * (H - pad.t - pad.b);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+  }
+}
+
+function dashedHLine(ctx, W, y, pad) {
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth   = 0.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  PRICE PANE
+// ════════════════════════════════════════════════════════════════════════════
+function drawPrice() {
+  const { ctx, W, H } = initCanvas('c-price', 'pane-price');
+  const p   = coreData.price;
+  const bars = p.bars;
+  const n   = bars.length;
+  if (!n) return;
+
+  const pad = { l: 4, r: 8, t: 24, b: 6 };
+
+  hGridLines(ctx, W, H, pad, 4);
+
+  // Range: include bars and MA200
+  const allVals = [];
+  bars.forEach(b => { allVals.push(b.h, b.l); });
+  if (p.ma200) p.ma200.forEach(v => { if (v > 0) allVals.push(v); });
+  const mn  = Math.min(...allVals);
+  const mx  = Math.max(...allVals);
+  const rng = mx - mn || 1;
+  const sy  = v => pad.t + (1 - (v - mn) / rng) * (H - pad.t - pad.b);
+
+  const bw = Math.max(1.5, (W - pad.l - pad.r) / n - 1.2);
+  const bx = i  => pad.l + (i + 0.5) * (W - pad.l - pad.r) / n;
+
+  // HLC bars
+  bars.forEach((b, i) => {
+    const up = (i === 0) ? b.c >= b.o : b.c >= bars[i - 1].c;
+    ctx.strokeStyle = up ? '#00dd44' : '#ff4444';
+    ctx.lineWidth   = 1;
+    ctx.beginPath(); ctx.moveTo(bx(i), sy(b.h)); ctx.lineTo(bx(i), sy(b.l)); ctx.stroke();
+    ctx.lineWidth = Math.max(1, bw * 0.65);
+    ctx.beginPath(); ctx.moveTo(bx(i) - bw * 0.3, sy(b.c)); ctx.lineTo(bx(i), sy(b.c)); ctx.stroke();
+  });
+
+  // Moving average lines
+  const maLines = [
+    { arr: p.ma50,  color: '#00ee44', lw: 1.5 },
+    { arr: p.ma100, color: '#ffffff', lw: 1.2 },
+    { arr: p.ma150, color: '#ffee44', lw: 1.2 },
+    { arr: p.ma200, color: '#ff4444', lw: 1.2 },
+  ];
+  maLines.forEach(({ arr, color, lw }) => {
+    if (!arr || !arr.length) return;
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath();
+    let started = false;
+    arr.forEach((v, i) => {
+      if (v <= 0) { started = false; return; }
+      const x = bx(i), y = sy(v);
+      if (!started) { ctx.moveTo(x, y); started = true; }
+      else          { ctx.lineTo(x, y); }
+    });
+    ctx.stroke();
+  });
+
+  // Update info label
+  const chgSign = p.chg >= 0 ? '+' : '';
+  const chgCls  = p.chg >= 0 ? 'pi-g' : 'pi-r';
+  document.getElementById('info-price').innerHTML =
+    '<span class="pi pi-w">VNINDEX</span>'
+    + ' <span class="pi pi-w">O:' + p.o.toFixed(2) + '</span>'
+    + ' <span class="pi pi-w">H:' + p.h.toFixed(2) + '</span>'
+    + ' <span class="pi pi-w">L:' + p.l.toFixed(2) + '</span>'
+    + ' <span class="pi ' + chgCls + '">C:' + p.c.toFixed(2) + ' (' + chgSign + p.chg.toFixed(2) + '%)</span>';
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  DUAL-LINE OSCILLATOR PANE
+// ════════════════════════════════════════════════════════════════════════════
+function drawDualOsc(canvasId, paneId, line1, line2, col1, col2, midVal, arrows, labelId, labelHtml) {
+  const { ctx, W, H } = initCanvas(canvasId, paneId);
+  if (!line1 || !line1.length) return;
+
+  const pad = { l: 4, r: 8, t: 22, b: 4 };
+  hGridLines(ctx, W, H, pad, 3);
+
+  // Shared range across both lines
+  const all = [...line1, ...(line2 || [])];
+  const mn  = Math.min(...all);
+  const mx  = Math.max(...all);
+  const rng = mx - mn || 1;
+  const sy  = v => pad.t + (1 - (v - mn) / rng) * (H - pad.t - pad.b);
+  const n   = line1.length;
+  const xStep = (W - pad.l - pad.r) / Math.max(n - 1, 1);
+  const x   = i => pad.l + i * xStep;
+
+  // Midline
+  if (midVal !== undefined) dashedHLine(ctx, W, sy(midVal), pad);
+
+  // Line 2 (background)
+  if (line2 && line2.length) {
+    ctx.strokeStyle = col2; ctx.lineWidth = 1.2; ctx.beginPath();
+    line2.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), sy(v)) : ctx.lineTo(x(i), sy(v)));
+    ctx.stroke();
+  }
+
+  // Line 1 (foreground)
+  ctx.strokeStyle = col1; ctx.lineWidth = 1.5; ctx.beginPath();
+  line1.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), sy(v)) : ctx.lineTo(x(i), sy(v)));
+  ctx.stroke();
+
+  // Signal arrows
+  if (arrows && arrows.length) {
+    ctx.font = '9px sans-serif';
+    arrows.forEach(a => {
+      if (a.i >= n) return;
+      ctx.fillStyle = a.up ? '#00ee44' : '#ff4444';
+      ctx.fillText(a.up ? '▲' : '▼', x(a.i) - 3, sy(line1[a.i]) + (a.up ? -4 : 10));
+    });
+  }
+
+  if (labelId && labelHtml) document.getElementById(labelId).innerHTML = labelHtml;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  TMA PANE
+// ════════════════════════════════════════════════════════════════════════════
+function drawTMA() {
+  const { ctx, W, H } = initCanvas('c-tma', 'pane-tma');
+  const t = coreData.tma;
+  if (!t || !t.v3t_arr || !t.v3g_arr) return;
+
+  const pad = { l: 4, r: 8, t: 22, b: 4 };
+  hGridLines(ctx, W, H, pad, 3);
+
+  const all = [...t.v3t_arr, ...t.v3g_arr];
+  const mn  = Math.min(...all);
+  const mx  = Math.max(...all);
+  const rng = mx - mn || 1;
+  const n   = t.v3t_arr.length;
+  const sy  = v => pad.t + (1 - (v - mn) / rng) * (H - pad.t - pad.b);
+  const x   = i => pad.l + i * (W - pad.l - pad.r) / Math.max(n - 1, 1);
+
+  // Zero baseline if in range
+  if (mn < 0 && mx > 0) dashedHLine(ctx, W, sy(0), pad);
+
+  // V3G line (magenta)
+  ctx.strokeStyle = '#ff44ff'; ctx.lineWidth = 1.3; ctx.beginPath();
+  t.v3g_arr.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), sy(v)) : ctx.lineTo(x(i), sy(v)));
+  ctx.stroke();
+
+  // V3T line (cyan)
+  ctx.strokeStyle = '#44ffff'; ctx.lineWidth = 1.5; ctx.beginPath();
+  t.v3t_arr.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), sy(v)) : ctx.lineTo(x(i), sy(v)));
+  ctx.stroke();
+
+  // Dots at local extremes of V3T
+  ctx.fillStyle = '#44ffff';
+  for (let i = 1; i < t.v3t_arr.length - 1; i++) {
+    const prev = t.v3t_arr[i - 1], curr = t.v3t_arr[i], next = t.v3t_arr[i + 1];
+    if ((curr > prev && curr > next) || (curr < prev && curr < next)) {
+      ctx.beginPath(); ctx.arc(x(i), sy(curr), 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Label
+  const s1 = t.v3t_chg >= 0 ? '+' : '';
+  const s2 = t.v3g_chg >= 0 ? '+' : '';
+  document.getElementById('info-tma').innerHTML =
+    '<span class="pi pi-w">TMA</span>'
+    + ' <span class="pi pi-c">V3T:' + t.v3t + ' (' + s1 + t.v3t_chg + ')</span>'
+    + ' <span class="pi pi-m">V3G:' + t.v3g + ' (' + s2 + t.v3g_chg + ')</span>';
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  DRAW ALL PANES
+// ════════════════════════════════════════════════════════════════════════════
+function drawAllPanes() {
+  if (!coreData) return;
+
+  drawPrice();
+
+  const s = coreData.strength;
+  drawDualOsc('c-str', 'pane-str', s.vg, s.vt, '#00ee44', '#ff4444', 50, s.arrows || [],
+    'info-str',
+    '<span class="pi pi-w">StrengthCountTotal &nbsp;P:' + s.total + '</span>'
+    + ' <span class="pi pi-g">%VG:' + s.pct_vg.toFixed(2) + '</span>'
+    + ' <span class="pi pi-r">%VT:' + s.pct_vt.toFixed(2) + '</span>');
+
+  const b50 = coreData.b50;
+  drawDualOsc('c-b50', 'pane-b50', b50.a_arr, b50.b_arr, '#00ee44', '#ff4444', 50, b50.arrows || [],
+    'info-b50',
+    '<span class="pi pi-w">% &gt; 50MA</span>'
+    + ' <span class="pi pi-g">Above:' + b50.above.toFixed(2) + '%</span>'
+    + ' <span class="pi pi-r">Below:' + b50.below.toFixed(2) + '%</span>');
+
+  const b200 = coreData.b200;
+  drawDualOsc('c-b200', 'pane-b200', b200.a_arr, b200.b_arr, '#00ee44', '#ff4444', 50, b200.arrows || [],
+    'info-b200',
+    '<span class="pi pi-w">% &gt; 200MA</span>'
+    + ' <span class="pi pi-g">Above:' + b200.above.toFixed(2) + '%</span>'
+    + ' <span class="pi pi-r">Below:' + b200.below.toFixed(2) + '%</span>');
+
+  drawTMA();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════════════════════
+window.addEventListener('resize', () => {
+  if (currentTab === 'core' && coreData) drawAllPanes();
+});
+
+startCountdown();
+fetchData();
+</script>
+</body>
+</html>
