@@ -453,6 +453,34 @@ ctx.strokeStyle = color;
     + ' <span class="pi pi-w">H:' + p.h.toFixed(2) + '</span>'
     + ' <span class="pi pi-w">L:' + p.l.toFixed(2) + '</span>'
     + ' <span class="pi ' + chgCls + '">C:' + p.c.toFixed(2) + ' (' + chgSign + p.chg.toFixed(2) + '%)</span>';
+
+// ===== RIGHT VALUE LABEL (PRICE) =====
+const lastBar = bars[bars.length-1];
+
+const labels = [
+  {v:lastBar.c, c:'#00ee44'},
+  {v:p.ma50?.slice(-1)[0], c:'#00ee44'},
+  {v:p.ma100?.slice(-1)[0], c:'#ffffff'},
+  {v:p.ma150?.slice(-1)[0], c:'#ffee44'},
+  {v:p.ma200?.slice(-1)[0], c:'#ff4444'}
+];
+
+labels.forEach(l=>{
+  if(!l.v) return;
+  ctx.fillStyle = l.c;
+  ctx.fillRect(W-38, sy(l.v)-6, 34, 12);
+  ctx.fillStyle = '#000';
+  ctx.font = '9px monospace';
+  ctx.fillText(l.v.toFixed(0), W-36, sy(l.v)+3);
+});
+
+// ===== TIME AXIS =====
+ctx.fillStyle = '#888';
+ctx.font = '8px monospace';
+
+for (let i = 0; i < bars.length; i += 7) {
+  ctx.fillText(i, bx(i)-4, H-2);
+}
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -462,54 +490,88 @@ function drawDualOsc(canvasId, paneId, line1, line2, col1, col2, midVal, arrows,
   const { ctx, W, H } = initCanvas(canvasId, paneId);
   if (!line1 || !line1.length) return;
 
-  const pad = { l: 4, r: 8, t: 22, b: 4 };
+  const pad = { l: 4, r: 40, t: 22, b: 16 };
+
   hGridLines(ctx, W, H, pad, 3);
 
-  // Shared range across both lines
   const all = [...line1, ...(line2 || [])];
   const mn  = Math.min(...all);
   const mx  = Math.max(...all);
   const rng = mx - mn || 1;
+
   const sy  = v => pad.t + (1 - (v - mn) / rng) * (H - pad.t - pad.b);
   const n   = line1.length;
   const xStep = (W - pad.l - pad.r) / Math.max(n - 1, 1);
   const x   = i => pad.l + i * xStep;
 
-  // Midline
   if (midVal !== undefined) dashedHLine(ctx, W, sy(midVal), pad);
 
-  // Line 2 (background)
+  // line2
   if (line2 && line2.length) {
-    ctx.strokeStyle = col2; ctx.lineWidth = 1.2; ctx.beginPath();
+    ctx.strokeStyle = col2;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
     line2.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), sy(v)) : ctx.lineTo(x(i), sy(v)));
     ctx.stroke();
-	// Dots (style Amibroker)
-	ctx.fillStyle = col1;
-	for (let i = 0; i < line1.length; i++) {
- 	 ctx.fillRect(x(i) - 1, sy(line1[i]) - 1, 2, 2);
-	}
-
-	if (line2 && line2.length) {
- 	 ctx.fillStyle = col2;
- 	 for (let i = 0; i < line2.length; i++) {
-  	  ctx.fillRect(x(i) - 1, sy(line2[i]) - 1, 2, 2);
- 	 }
-}
   }
 
-  // Line 1 (foreground)
-  ctx.strokeStyle = col1; ctx.lineWidth = 1.5; ctx.beginPath();
+  // line1
+  ctx.strokeStyle = col1;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
   line1.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), sy(v)) : ctx.lineTo(x(i), sy(v)));
   ctx.stroke();
 
-  // Signal arrows
+  // dots vuông
+  ctx.fillStyle = col1;
+  line1.forEach((v,i)=>ctx.fillRect(x(i)-1, sy(v)-1,2,2));
+
+  if (line2) {
+    ctx.fillStyle = col2;
+    line2.forEach((v,i)=>ctx.fillRect(x(i)-1, sy(v)-1,2,2));
+  }
+
+  // ===== ARROWS FIX =====
   if (arrows && arrows.length) {
-    ctx.font = '9px sans-serif';
+    ctx.font = '8px sans-serif';
+
     arrows.forEach(a => {
       if (a.i >= n) return;
-      ctx.fillStyle = a.up ? '#00ee44' : '#ff4444';
-      ctx.fillText(a.up ? '▲' : '▼', x(a.i) - 3, sy(line1[a.i]) + (a.up ? -4 : 10));
+
+      const y = sy(line1[a.i]);
+
+      if (a.up) {
+        ctx.fillStyle = '#00ee44';
+        ctx.fillText('▲', x(a.i)-3, y + 10); // dưới line
+      } else {
+        ctx.fillStyle = '#ff4444';
+        ctx.fillText('▼', x(a.i)-3, y - 6); // trên line
+      }
     });
+  }
+
+  // ===== RIGHT VALUE LABEL =====
+  const last1 = line1[n-1];
+  ctx.fillStyle = col1;
+  ctx.fillRect(W-38, sy(last1)-6, 34, 12);
+  ctx.fillStyle = '#000';
+  ctx.font = '9px monospace';
+  ctx.fillText(last1.toFixed(2), W-36, sy(last1)+3);
+
+  if (line2) {
+    const last2 = line2[n-1];
+    ctx.fillStyle = col2;
+    ctx.fillRect(W-38, sy(last2)-6, 34, 12);
+    ctx.fillStyle = '#000';
+    ctx.fillText(last2.toFixed(2), W-36, sy(last2)+3);
+  }
+
+  // ===== TIME AXIS (7-day block) =====
+  ctx.fillStyle = '#888';
+  ctx.font = '8px monospace';
+
+  for (let i = 0; i < n; i += 7) {
+    ctx.fillText(i, x(i)-4, H-2);
   }
 
   if (labelId && labelHtml) document.getElementById(labelId).innerHTML = labelHtml;
