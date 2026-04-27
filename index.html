@@ -669,11 +669,11 @@ function drawAllPanes() {
 
   // ===== Strength =====
   const s = coreData.strength;
-  const strSignals = detectCrossSignals(s.vg, s.vt);
+  const strSignals = detectCrossSignals(s.vt, s.vg);
 
   drawDualOsc(
     'c-str', 'pane-str',
-    s.vg, s.vt,
+    s.vt, s.vg,
     '#00ee44', '#ff4444',
     50,
     strSignals,
