@@ -584,13 +584,13 @@ function drawTMA() {
   // Zero baseline if in range
   if (mn < 0 && mx > 0) dashedHLine(ctx, W, sy(0), pad);
 
-  // V3G line (magenta)
-  ctx.strokeStyle = '#ff44ff'; ctx.lineWidth = 1.3; ctx.beginPath();
+  // V3G line (cyan)
+  ctx.strokeStyle = '#44ffff'; ctx.lineWidth = 1.3; ctx.beginPath();
   t.v3g_arr.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), sy(v)) : ctx.lineTo(x(i), sy(v)));
   ctx.stroke();
 
-  // V3T line (cyan)
-  ctx.strokeStyle = '#44ffff'; ctx.lineWidth = 1.5; ctx.beginPath();
+  // V3T line (magenta)
+  ctx.strokeStyle = '#ff44ff'; ctx.lineWidth = 1.5; ctx.beginPath();
   t.v3t_arr.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), sy(v)) : ctx.lineTo(x(i), sy(v)));
   ctx.stroke();
 
@@ -602,15 +602,15 @@ function drawTMA() {
   const lastT = t.v3t_arr[t.v3t_arr.length - 1];
   const lastG = t.v3g_arr[t.v3g_arr.length - 1];
 
-  // V3T (cyan)
-  ctx.fillStyle = '#44ffff';
+  // V3T (magenta)
+  ctx.fillStyle = '#ff44ff';
   ctx.fillRect(W - 45, sy(lastT) - 6, 35, 12);
   ctx.fillStyle = '#000';
   ctx.font = '9px monospace';
   ctx.fillText(lastT.toFixed(0), W - 43, sy(lastT) + 3);
   
-  // V3G (magenta)
-  ctx.fillStyle = '#ff44ff';
+  // V3G (cyan)
+  ctx.fillStyle = '#44ffff';
   ctx.fillRect(W - 45, sy(lastG) - 6, 35, 12);
   ctx.fillStyle = '#000';
   ctx.fillText(lastG.toFixed(0), W - 43, sy(lastG) + 3);
