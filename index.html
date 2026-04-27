@@ -560,6 +560,15 @@ function drawDualOsc(canvasId, paneId, line1, line2, col1, col2, midVal, arrows,
   }
 
   if (labelId && labelHtml) document.getElementById(labelId).innerHTML = labelHtml;
+
+  // ===== Y AXIS =====
+  ctx.fillStyle = '#aaa';
+  ctx.font = '9px monospace';
+
+  [0, 50, 100].forEach(v => {
+    const y = sy(v);
+    ctx.fillText(v, W - 35, y + 3);
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
