@@ -103,15 +103,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 <!-- ══════════════ TAB BAR ══════════════ -->
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('grid', this)">📊 Setup Filter Grid</button>
-  <button class="tab-btn"        onclick="switchTab('core', this)">📈 Market Core</button>
+  <button class="tab-btn active" onclick="switchTab('core', this)">📈 Market Core</button>
+  <button class="tab-btn"        onclick="switchTab('grid', this)">📊 Setup Filter Grid</button>
 </div>
 
 <!-- ══════════════ CONTENT ══════════════ -->
 <div class="content">
 
   <!-- ── GRID VIEW ── -->
-  <div id="view-grid">
+  <div id="view-grid" style="display:none;">
     <div class="setup-bar">
       <div class="pills" id="setup-pills"><div class="pill active">Loading…</div></div>
       <div class="legend">
@@ -128,7 +128,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
 
   <!-- ── MARKET CORE VIEW ── -->
-  <div id="view-core" style="display:none;">
+  <div id="view-core">
     <div class="core-wrap">
 
       <!-- Price pane -->
@@ -191,7 +191,7 @@ const REFRESH_MS    = 5 * 60 * 1000;   // 5-minute auto refresh
 let gridData        = null;
 let coreData        = null;
 let currentSetup    = 0;
-let currentTab      = 'grid';
+let currentTab      = 'core';
 let nextRefreshAt   = 0;
 let countdownTimer  = null;
 
