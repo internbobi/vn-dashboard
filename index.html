@@ -215,7 +215,7 @@ async function fetchData() {
   try {
     const [gRes, cRes] = await Promise.all([
       fetch('./grid_data.json?t='    + t),
-      fetch('./market_core.json?t='  + t)
+      fetch('./data/market-core.json?t=' + t)
     ]);
     if (!gRes.ok || !cRes.ok) throw new Error('HTTP error');
 
