@@ -361,7 +361,7 @@ function drawPrice() {
   const n   = bars.length;
   if (!n) return;
 
-  const pad = { l: 4, r: 8, t: 24, b: 6 };
+  const pad = { l: 4, r: 80, t: 24, b: 6 };
 
   hGridLines(ctx, W, H, pad, 4);
 
@@ -468,10 +468,10 @@ const labels = [
 labels.forEach(l=>{
   if(!l.v) return;
   ctx.fillStyle = l.c;
-  ctx.fillRect(W-38, sy(l.v)-6, 34, 12);
+  ctx.fillRect(W-60, sy(l.v)-6, 50, 12);
   ctx.fillStyle = '#000';
   ctx.font = '9px monospace';
-  ctx.fillText(l.v.toFixed(0), W-36, sy(l.v)+3);
+  ctx.fillText(l.v.toFixed(0), W-58, sy(l.v)+3);
 });
 
 }
@@ -546,7 +546,7 @@ function drawDualOsc(canvasId, paneId, line1, line2, col1, col2, midVal, arrows,
   // ===== RIGHT VALUE LABEL =====
   const last1 = line1[n-1];
   ctx.fillStyle = col1;
-  ctx.fillRect(W-38, sy(last1)-6, 34, 12);
+  ctx.fillRect(W-60, sy(val)-6, 50, 12);
   ctx.fillStyle = '#000';
   ctx.font = '9px monospace';
   ctx.fillText(last1.toFixed(2), W-36, sy(last1)+3);
@@ -554,7 +554,7 @@ function drawDualOsc(canvasId, paneId, line1, line2, col1, col2, midVal, arrows,
   if (line2) {
     const last2 = line2[n-1];
     ctx.fillStyle = col2;
-    ctx.fillRect(W-38, sy(last2)-6, 34, 12);
+    ctx.fillRect(W-60, sy(val)-6, 50, 12);
     ctx.fillStyle = '#000';
     ctx.fillText(last2.toFixed(2), W-36, sy(last2)+3);
   }
@@ -579,7 +579,7 @@ function drawTMA() {
   const t = coreData.tma;
   if (!t || !t.v3t_arr || !t.v3g_arr) return;
 
-  const pad = { l: 4, r: 8, t: 22, b: 4 };
+  const pad = { l: 4, r: 80, t: 22, b: 16 };
   hGridLines(ctx, W, H, pad, 3);
 
   const all = [...t.v3t_arr, ...t.v3g_arr];
