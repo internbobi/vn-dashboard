@@ -103,7 +103,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 <!-- ══════════════ TAB BAR ══════════════ -->
 <div class="tab-bar">
-  
   <button class="tab-btn active" onclick="switchTab('grid', this)">📊 Setup Filter Grid</button>
   <button class="tab-btn"        onclick="switchTab('core', this)">📈 Market Core</button>
 </div>
@@ -475,13 +474,6 @@ labels.forEach(l=>{
   ctx.fillText(l.v.toFixed(0), W-36, sy(l.v)+3);
 });
 
-// ===== TIME AXIS =====
-ctx.fillStyle = '#888';
-ctx.font = '8px monospace';
-
-for (let i = 0; i < bars.length; i += 7) {
-  ctx.fillText(i, bx(i)-4, H-2);
-}
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -565,14 +557,6 @@ function drawDualOsc(canvasId, paneId, line1, line2, col1, col2, midVal, arrows,
     ctx.fillRect(W-38, sy(last2)-6, 34, 12);
     ctx.fillStyle = '#000';
     ctx.fillText(last2.toFixed(2), W-36, sy(last2)+3);
-  }
-
-  // ===== TIME AXIS (7-day block) =====
-  ctx.fillStyle = '#888';
-  ctx.font = '8px monospace';
-
-  for (let i = 0; i < n; i += 7) {
-    ctx.fillText(i, x(i)-4, H-2);
   }
 
   if (labelId && labelHtml) document.getElementById(labelId).innerHTML = labelHtml;
