@@ -379,9 +379,28 @@ function drawPrice() {
 
   // HLC bars (chuẩn AmiBroker)
 bars.forEach((b, i) => {
-  const up = b.c >= b.o;
+let color = '#00dd44'; // default
 
-  ctx.strokeStyle = up ? '#00dd44' : '#ff4444';
+if (i > 0) {
+  const prevC = bars[i - 1].c;
+  const rc = b.c - prevC;
+  const pct = Math.abs((b.c / prevC) - 1);
+
+  if (b.c === prevC) {
+    color = '#ffee44'; // vàng
+  } else if (rc > 0 && pct >= 0.05) {
+    color = '#ff00ff'; // magenta
+  } else if (rc > 0 && pct < 0.05) {
+    color = '#00dd44'; // xanh lá
+  } else if (rc < 0 && pct >= 0.05) {
+    color = '#00ffff'; // cyan
+  } else if (rc < 0 && pct < 0.05) {
+    color = '#ff4444'; // đỏ
+  }
+}
+
+ctx.strokeStyle = color;
+
   ctx.lineWidth = 1;
 
   const x = bx(i);
@@ -540,32 +559,103 @@ function drawTMA() {
 // ════════════════════════════════════════════════════════════════════════════
 //  DRAW ALL PANES
 // ════════════════════════════════════════════════════════════════════════════
+function detectCrossSignals(line1, line2) {
+  const signals = [];
+
+  for (let i = 1; i < line1.length; i++) {
+    const prevDiff = line1[i-1] - line2[i-1];
+    const currDiff = line1[i] - line2[i];
+
+    // Cross up
+    if (prevDiff < 0 && currDiff > 0) {
+      signals.push({ i: i, up: true });
+    }
+
+    // Cross down
+    if (prevDiff > 0 && currDiff < 0) {
+      signals.push({ i: i, up: false });
+    }
+  }
+
+  return signals;
+}
+
 function drawAllPanes() {
   if (!coreData) return;
 
   drawPrice();
 
+  // ===== helper detect cross =====
+  function detectCrossSignals(line1, line2) {
+    const signals = [];
+
+    for (let i = 1; i < line1.length; i++) {
+      const prevDiff = line1[i - 1] - line2[i - 1];
+      const currDiff = line1[i] - line2[i];
+
+      // Cross up (green arrow)
+      if (prevDiff < 0 && currDiff > 0) {
+        signals.push({ i: i, up: true });
+      }
+
+      // Cross down (red arrow)
+      if (prevDiff > 0 && currDiff < 0) {
+        signals.push({ i: i, up: false });
+      }
+    }
+
+    return signals;
+  }
+
+  // ===== Strength =====
   const s = coreData.strength;
-  drawDualOsc('c-str', 'pane-str', s.vg, s.vt, '#00ee44', '#ff4444', 50, s.arrows || [],
+  const strSignals = detectCrossSignals(s.vg, s.vt);
+
+  drawDualOsc(
+    'c-str', 'pane-str',
+    s.vg, s.vt,
+    '#00ee44', '#ff4444',
+    50,
+    strSignals,
     'info-str',
     '<span class="pi pi-w">StrengthCountTotal &nbsp;P:' + s.total + '</span>'
     + ' <span class="pi pi-g">%VG:' + s.pct_vg.toFixed(2) + '</span>'
-    + ' <span class="pi pi-r">%VT:' + s.pct_vt.toFixed(2) + '</span>');
+    + ' <span class="pi pi-r">%VT:' + s.pct_vt.toFixed(2) + '</span>'
+  );
 
+  // ===== Breadth 50 =====
   const b50 = coreData.b50;
-  drawDualOsc('c-b50', 'pane-b50', b50.a_arr, b50.b_arr, '#00ee44', '#ff4444', 50, b50.arrows || [],
+  const b50Signals = detectCrossSignals(b50.a_arr, b50.b_arr);
+
+  drawDualOsc(
+    'c-b50', 'pane-b50',
+    b50.a_arr, b50.b_arr,
+    '#00ee44', '#ff4444',
+    50,
+    b50Signals,
     'info-b50',
     '<span class="pi pi-w">% &gt; 50MA</span>'
     + ' <span class="pi pi-g">Above:' + b50.above.toFixed(2) + '%</span>'
-    + ' <span class="pi pi-r">Below:' + b50.below.toFixed(2) + '%</span>');
+    + ' <span class="pi pi-r">Below:' + b50.below.toFixed(2) + '%</span>'
+  );
 
+  // ===== Breadth 200 =====
   const b200 = coreData.b200;
-  drawDualOsc('c-b200', 'pane-b200', b200.a_arr, b200.b_arr, '#00ee44', '#ff4444', 50, b200.arrows || [],
+  const b200Signals = detectCrossSignals(b200.a_arr, b200.b_arr);
+
+  drawDualOsc(
+    'c-b200', 'pane-b200',
+    b200.a_arr, b200.b_arr,
+    '#00ee44', '#ff4444',
+    50,
+    b200Signals,
     'info-b200',
     '<span class="pi pi-w">% &gt; 200MA</span>'
     + ' <span class="pi pi-g">Above:' + b200.above.toFixed(2) + '%</span>'
-    + ' <span class="pi pi-r">Below:' + b200.below.toFixed(2) + '%</span>');
+    + ' <span class="pi pi-r">Below:' + b200.below.toFixed(2) + '%</span>'
+  );
 
+  // ===== TMA =====
   drawTMA();
 }
 
