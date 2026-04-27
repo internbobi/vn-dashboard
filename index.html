@@ -377,15 +377,33 @@ function drawPrice() {
   const bw = Math.max(1.5, (W - pad.l - pad.r) / n - 1.2);
   const bx = i  => pad.l + (i + 0.5) * (W - pad.l - pad.r) / n;
 
-  // HLC bars
-  bars.forEach((b, i) => {
-    const up = (i === 0) ? b.c >= b.o : b.c >= bars[i - 1].c;
-    ctx.strokeStyle = up ? '#00dd44' : '#ff4444';
-    ctx.lineWidth   = 1;
-    ctx.beginPath(); ctx.moveTo(bx(i), sy(b.h)); ctx.lineTo(bx(i), sy(b.l)); ctx.stroke();
-    ctx.lineWidth = Math.max(1, bw * 0.65);
-    ctx.beginPath(); ctx.moveTo(bx(i) - bw * 0.3, sy(b.c)); ctx.lineTo(bx(i), sy(b.c)); ctx.stroke();
-  });
+  // HLC bars (chuẩn AmiBroker)
+bars.forEach((b, i) => {
+  const up = b.c >= b.o;
+
+  ctx.strokeStyle = up ? '#00dd44' : '#ff4444';
+  ctx.lineWidth = 1;
+
+  const x = bx(i);
+
+  // High-Low
+  ctx.beginPath();
+  ctx.moveTo(x, sy(b.h));
+  ctx.lineTo(x, sy(b.l));
+  ctx.stroke();
+
+  // Open (tick trái)
+  ctx.beginPath();
+  ctx.moveTo(x - 4, sy(b.o));
+  ctx.lineTo(x, sy(b.o));
+  ctx.stroke();
+
+  // Close (tick phải)
+  ctx.beginPath();
+  ctx.moveTo(x, sy(b.c));
+  ctx.lineTo(x + 4, sy(b.c));
+  ctx.stroke();
+});
 
   // Moving average lines
   const maLines = [
@@ -446,6 +464,18 @@ function drawDualOsc(canvasId, paneId, line1, line2, col1, col2, midVal, arrows,
     ctx.strokeStyle = col2; ctx.lineWidth = 1.2; ctx.beginPath();
     line2.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), sy(v)) : ctx.lineTo(x(i), sy(v)));
     ctx.stroke();
+	// Dots (style Amibroker)
+	ctx.fillStyle = col1;
+	for (let i = 0; i < line1.length; i++) {
+ 	 ctx.fillRect(x(i) - 1, sy(line1[i]) - 1, 2, 2);
+	}
+
+	if (line2 && line2.length) {
+ 	 ctx.fillStyle = col2;
+ 	 for (let i = 0; i < line2.length; i++) {
+  	  ctx.fillRect(x(i) - 1, sy(line2[i]) - 1, 2, 2);
+ 	 }
+}
   }
 
   // Line 1 (foreground)
@@ -497,15 +527,6 @@ function drawTMA() {
   ctx.strokeStyle = '#44ffff'; ctx.lineWidth = 1.5; ctx.beginPath();
   t.v3t_arr.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), sy(v)) : ctx.lineTo(x(i), sy(v)));
   ctx.stroke();
-
-  // Dots at local extremes of V3T
-  ctx.fillStyle = '#44ffff';
-  for (let i = 1; i < t.v3t_arr.length - 1; i++) {
-    const prev = t.v3t_arr[i - 1], curr = t.v3t_arr[i], next = t.v3t_arr[i + 1];
-    if ((curr > prev && curr > next) || (curr < prev && curr < next)) {
-      ctx.beginPath(); ctx.arc(x(i), sy(curr), 2.5, 0, Math.PI * 2); ctx.fill();
-    }
-  }
 
   // Label
   const s1 = t.v3t_chg >= 0 ? '+' : '';
