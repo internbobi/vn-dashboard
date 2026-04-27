@@ -604,16 +604,16 @@ function drawTMA() {
 
   // V3T (cyan)
   ctx.fillStyle = '#44ffff';
-  ctx.fillRect(W - 60, sy(lastT) - 6, 50, 12);
+  ctx.fillRect(W - 45, sy(lastT) - 6, 35, 12);
   ctx.fillStyle = '#000';
   ctx.font = '9px monospace';
-  ctx.fillText(lastT.toFixed(0), W - 58, sy(lastT) + 3);
-
+  ctx.fillText(lastT.toFixed(0), W - 43, sy(lastT) + 3);
+  
   // V3G (magenta)
   ctx.fillStyle = '#ff44ff';
-  ctx.fillRect(W - 60, sy(lastG) - 6, 50, 12);
+  ctx.fillRect(W - 45, sy(lastG) - 6, 35, 12);
   ctx.fillStyle = '#000';
-  ctx.fillText(lastG.toFixed(0), W - 58, sy(lastG) + 3);
+  ctx.fillText(lastG.toFixed(0), W - 43, sy(lastG) + 3);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
