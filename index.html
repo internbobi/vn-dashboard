@@ -178,7 +178,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       </div>
 
     </div>
-    <div class="core-footer">VNINDEX · Market Breadth &amp; Strength · Data exported from Amibroker every 5 minutes</div>
+    <div class="core-footer">VNINDEX · Market Breadth &amp; Strength · Data exported from Amibroker every 15 minutes</div>
   </div>
 
 </div><!-- /content -->
@@ -595,12 +595,25 @@ function drawTMA() {
   ctx.stroke();
 
   // Label
-  const s1 = t.v3t_chg >= 0 ? '+' : '';
-  const s2 = t.v3g_chg >= 0 ? '+' : '';
   document.getElementById('info-tma').innerHTML =
-    '<span class="pi pi-w">TMA</span>'
-    + ' <span class="pi pi-c">V3T:' + t.v3t + ' (' + s1 + t.v3t_chg + ')</span>'
-    + ' <span class="pi pi-m">V3G:' + t.v3g + ' (' + s2 + t.v3g_chg + ')</span>';
+    '<span class="pi pi-w">TMA</span>';
+
+  // ===== RIGHT LABELS (TMA) =====
+  const lastT = t.v3t_arr[t.v3t_arr.length - 1];
+  const lastG = t.v3g_arr[t.v3g_arr.length - 1];
+
+  // V3T (cyan)
+  ctx.fillStyle = '#44ffff';
+  ctx.fillRect(W - 60, sy(lastT) - 6, 50, 12);
+  ctx.fillStyle = '#000';
+  ctx.font = '9px monospace';
+  ctx.fillText(lastT.toFixed(0), W - 58, sy(lastT) + 3);
+
+  // V3G (magenta)
+  ctx.fillStyle = '#ff44ff';
+  ctx.fillRect(W - 60, sy(lastG) - 6, 50, 12);
+  ctx.fillStyle = '#000';
+  ctx.fillText(lastG.toFixed(0), W - 58, sy(lastG) + 3);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
