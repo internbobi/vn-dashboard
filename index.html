@@ -404,7 +404,8 @@ ctx.strokeStyle = color;
   ctx.lineWidth = 1;
 
   const x = bx(i);
-
+  const tick = 2.5;
+  
   // High-Low
   ctx.beginPath();
   ctx.moveTo(x, sy(b.h));
@@ -413,14 +414,14 @@ ctx.strokeStyle = color;
 
   // Open (tick trái)
   ctx.beginPath();
-  ctx.moveTo(x - 4, sy(b.o));
+  ctx.moveTo(x - tick, sy(b.o));
   ctx.lineTo(x, sy(b.o));
   ctx.stroke();
-
+  
   // Close (tick phải)
   ctx.beginPath();
   ctx.moveTo(x, sy(b.c));
-  ctx.lineTo(x + 4, sy(b.c));
+  ctx.lineTo(x + tick, sy(b.c));
   ctx.stroke();
 });
 
