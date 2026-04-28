@@ -206,39 +206,78 @@ function switchTab(name, el) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  DATA FETCHING
+//  DATA FETCHING (OPTIMIZED - NO FLICKER)
 // ════════════════════════════════════════════════════════════════════════════
+
+let countdownTimer = null;
+let lastCoreHash = null;
+
 async function fetchData() {
-  const t = Date.now(); // cache-buster — forces GitHub to serve fresh file
+  const t = Date.now(); // cache-buster
+
+  // 👉 KHÔNG clear chart, chỉ báo đang update nhẹ
+  setBadge('loading', '● Updating...');
+
   try {
     const [gRes, cRes] = await Promise.all([
-      fetch('./grid_data.json?t='    + t),
+      fetch('./grid_data.json?t=' + t),
       fetch('./data/market-core.json?t=' + t)
     ]);
+
     if (!gRes.ok || !cRes.ok) throw new Error('HTTP error');
 
-    gridData = await gRes.json();
-    coreData = await cRes.json();
+    const newGridData = await gRes.json();
+    const newCoreData = await cRes.json();
 
-    if (coreData.meta) {
-  startCountdown(coreData.meta);
-  }
+    // 👉 So sánh để tránh redraw vô ích
+    const newHash = JSON.stringify(newCoreData);
+
+    let shouldRedraw = true;
+    if (lastCoreHash && lastCoreHash === newHash) {
+      shouldRedraw = false;
+    }
+
+    // 👉 Update data nhưng KHÔNG làm mất chart
+    gridData = newGridData;
+    coreData = newCoreData;
+
+    // 👉 Chỉ redraw khi có thay đổi
+    if (shouldRedraw && currentTab === 'core') {
+      requestAnimationFrame(drawAllPanes);
+    }
+
     renderGrid();
-    if (currentTab === 'core') setTimeout(drawAllPanes, 60);
 
-    setBadge('live', '● LIVE');
+    // 👉 Countdown (clear timer cũ tránh bị nhân đôi)
+    if (coreData.meta) {
+      if (countdownTimer) clearInterval(countdownTimer);
+      startCountdown(coreData.meta);
+    }
+
     setUpdated(coreData.meta?.last_updated || '—');
+    setBadge('live', '● LIVE');
+
+    lastCoreHash = newHash;
+
   } catch (err) {
     console.error('Fetch error:', err);
     setBadge('err', '● ERROR');
   }
+
   scheduleNext();
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+//  AUTO REFRESH LOOP
+// ════════════════════════════════════════════════════════════════════════════
+
 function scheduleNext() {
-  nextRefreshAt = Date.now() + REFRESH_MS;
   setTimeout(fetchData, REFRESH_MS);
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════════════════════════════════════
 
 function setBadge(type, text) {
   const el = document.getElementById('badge');
@@ -247,10 +286,14 @@ function setBadge(type, text) {
 }
 
 function setUpdated(ts) {
-  document.getElementById('upd-lbl').textContent = 'Last updated: ' + ts;
+  document.getElementById('upd-lbl').textContent =
+    'Last updated: ' + ts;
 }
 
-// Countdown display
+// ════════════════════════════════════════════════════════════════════════════
+//  COUNTDOWN (SYNC WITH BACKEND)
+// ════════════════════════════════════════════════════════════════════════════
+
 function startCountdown(meta) {
   const el = document.getElementById('countdown');
 
@@ -266,12 +309,12 @@ function startCountdown(meta) {
 
     el.textContent =
       'Next refresh in ' +
-      String(m).padStart(2,'0') + ':' +
-      String(s).padStart(2,'0');
+      String(m).padStart(2, '0') + ':' +
+      String(s).padStart(2, '0');
   }
 
   tick();
-  setInterval(tick, 1000);
+  countdownTimer = setInterval(tick, 1000);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
