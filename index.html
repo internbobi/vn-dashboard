@@ -311,13 +311,14 @@ function startCountdown(meta) {
   if (!meta || !meta.next_update) return;
 
   const el = document.getElementById('countdown');
-  const next = new Date(meta.next_update);
 
-  function tick() {
-    const now = new Date();
-    let diff = Math.floor((next - now) / 1000);
+  // convert sang timestamp 1 lần
+  let nextTs = new Date(meta.next_update).getTime();
 
-    // ✅ chỉ clamp về 0, KHÔNG reset
+  function updateCountdown() {
+    const nowTs = Date.now();
+    let diff = Math.floor((nextTs - nowTs) / 1000);
+
     if (diff < 0) diff = 0;
 
     const m = Math.floor(diff / 60);
@@ -329,9 +330,16 @@ function startCountdown(meta) {
       String(s).padStart(2, '0');
   }
 
-  tick();
-  clearInterval(window._cdTimer);
-  window._cdTimer = setInterval(tick, 1000);
+  // chạy ngay lập tức
+  updateCountdown();
+
+  // clear timer cũ (quan trọng)
+  if (window._countdownTimer) {
+    clearInterval(window._countdownTimer);
+  }
+
+  // update mỗi giây
+  window._countdownTimer = setInterval(updateCountdown, 1000);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
