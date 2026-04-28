@@ -206,17 +206,22 @@ function switchTab(name, el) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  DATA FETCHING (OPTIMIZED - NO FLICKER)
+//  DATA FETCHING (SAFE VERSION - NEVER BREAK CHART)
 // ════════════════════════════════════════════════════════════════════════════
 
 let countdownTimer = null;
 let lastCoreHash = null;
+let isFirstLoad = true;
 
 async function fetchData() {
-  const t = Date.now(); // cache-buster
+  const t = Date.now();
 
-  // 👉 KHÔNG clear chart, chỉ báo đang update nhẹ
-  setBadge('loading', '● Updating...');
+  // 👉 chỉ show loading lần đầu
+  if (isFirstLoad) {
+    setBadge('loading', '● Loading...');
+  } else {
+    setBadge('loading', '● Updating...');
+  }
 
   try {
     const [gRes, cRes] = await Promise.all([
@@ -224,31 +229,37 @@ async function fetchData() {
       fetch('./data/market-core.json?t=' + t)
     ]);
 
-    if (!gRes.ok || !cRes.ok) throw new Error('HTTP error');
+    if (!gRes.ok || !cRes.ok) {
+      throw new Error('HTTP error: ' + gRes.status + ' / ' + cRes.status);
+    }
 
     const newGridData = await gRes.json();
     const newCoreData = await cRes.json();
 
-    // 👉 So sánh để tránh redraw vô ích
-    const newHash = JSON.stringify(newCoreData);
-
-    let shouldRedraw = true;
-    if (lastCoreHash && lastCoreHash === newHash) {
-      shouldRedraw = false;
+    // ❗ CHECK DATA HỢP LỆ (QUAN TRỌNG NHẤT)
+    if (!newCoreData || !newCoreData.price || !newCoreData.price.bars) {
+      throw new Error('Invalid coreData structure');
     }
 
-    // 👉 Update data nhưng KHÔNG làm mất chart
+    // 👉 HASH CHECK
+    const newHash = JSON.stringify(newCoreData);
+
+    const hasChanged = (lastCoreHash !== newHash);
+
+    // 👉 update data
     gridData = newGridData;
     coreData = newCoreData;
 
-    // 👉 Chỉ redraw khi có thay đổi
-    if (shouldRedraw && currentTab === 'core') {
-      requestAnimationFrame(drawAllPanes);
+    // 👉 CHỈ DRAW KHI CÓ DATA
+    if (currentTab === 'core' && coreData.price.bars.length > 0) {
+      if (hasChanged || isFirstLoad) {
+        requestAnimationFrame(drawAllPanes);
+      }
     }
 
     renderGrid();
 
-    // 👉 Countdown (clear timer cũ tránh bị nhân đôi)
+    // 👉 countdown
     if (coreData.meta) {
       if (countdownTimer) clearInterval(countdownTimer);
       startCountdown(coreData.meta);
@@ -258,25 +269,26 @@ async function fetchData() {
     setBadge('live', '● LIVE');
 
     lastCoreHash = newHash;
+    isFirstLoad = false;
 
   } catch (err) {
-    console.error('Fetch error:', err);
+    console.error('❌ Fetch error:', err);
+
+    // ❗ KHÔNG xóa chart nếu lỗi
     setBadge('err', '● ERROR');
+
+    // 👉 giữ nguyên data cũ
   }
 
   scheduleNext();
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-//  AUTO REFRESH LOOP
-// ════════════════════════════════════════════════════════════════════════════
 
 function scheduleNext() {
   setTimeout(fetchData, REFRESH_MS);
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  UI HELPERS
 // ════════════════════════════════════════════════════════════════════════════
 
 function setBadge(type, text) {
@@ -290,8 +302,6 @@ function setUpdated(ts) {
     'Last updated: ' + ts;
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  COUNTDOWN (SYNC WITH BACKEND)
 // ════════════════════════════════════════════════════════════════════════════
 
 function startCountdown(meta) {
