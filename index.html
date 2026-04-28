@@ -192,8 +192,6 @@ let gridData        = null;
 let coreData        = null;
 let currentSetup    = 0;
 let currentTab      = 'core';
-let nextRefreshAt   = 0;
-let countdownTimer  = null;
 
 // ════════════════════════════════════════════════════════════════════════════
 //  TAB SWITCHING
@@ -222,11 +220,14 @@ async function fetchData() {
     gridData = await gRes.json();
     coreData = await cRes.json();
 
+    if (coreData.meta) {
+  startCountdown(coreData.meta);
+  }
     renderGrid();
     if (currentTab === 'core') setTimeout(drawAllPanes, 60);
 
     setBadge('live', '● LIVE');
-    setUpdated(gridData.last_updated || '—');
+    setUpdated(coreData.meta?.last_updated || '—');
   } catch (err) {
     console.error('Fetch error:', err);
     setBadge('err', '● ERROR');
@@ -250,15 +251,27 @@ function setUpdated(ts) {
 }
 
 // Countdown display
-function startCountdown() {
-  clearInterval(countdownTimer);
-  countdownTimer = setInterval(() => {
-    const rem = Math.max(0, nextRefreshAt - Date.now());
-    const m = Math.floor(rem / 60000);
-    const s = Math.floor((rem % 60000) / 1000);
-    document.getElementById('countdown').textContent =
-      'Next refresh in ' + m + ':' + String(s).padStart(2, '0');
-  }, 1000);
+function startCountdown(meta) {
+  const el = document.getElementById('countdown');
+
+  function tick() {
+    const now = new Date();
+    const next = new Date(meta.next_update);
+
+    let diff = Math.floor((next - now) / 1000);
+    if (diff < 0) diff = 0;
+
+    const m = Math.floor(diff / 60);
+    const s = diff % 60;
+
+    el.textContent =
+      'Next refresh in ' +
+      String(m).padStart(2,'0') + ':' +
+      String(s).padStart(2,'0');
+  }
+
+  tick();
+  setInterval(tick, 1000);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
