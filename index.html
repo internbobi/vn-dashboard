@@ -264,8 +264,7 @@ async function fetchData() {
     renderGrid();
 
     // 👉 countdown
-    if (coreData.meta) {
-      if (countdownTimer) clearInterval(countdownTimer);
+    if (coreData.meta && coreData.meta.next_update) {
       startCountdown(coreData.meta);
     }
 
@@ -309,6 +308,11 @@ function setUpdated(ts) {
 // ════════════════════════════════════════════════════════════════════════════
 
 function startCountdown(meta) {
+  if (!meta || !meta.next_update) {
+    console.warn('⚠️ meta thiếu next_update');
+    return;
+  }
+
   const el = document.getElementById('countdown');
 
   function tick() {
@@ -323,12 +327,12 @@ function startCountdown(meta) {
 
     el.textContent =
       'Next refresh in ' +
-      String(m).padStart(2, '0') + ':' +
-      String(s).padStart(2, '0');
+      String(m).padStart(2,'0') + ':' +
+      String(s).padStart(2,'0');
   }
 
   tick();
-  countdownTimer = setInterval(tick, 1000);
+  setInterval(tick, 1000);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
