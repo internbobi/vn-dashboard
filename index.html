@@ -216,6 +216,8 @@ let isFirstLoad = true;
 async function fetchData() {
   const t = Date.now();
 
+  console.log('📡 fetching...');
+  
   // 👉 chỉ show loading lần đầu
   if (isFirstLoad) {
     setBadge('loading', '● Loading...');
@@ -250,6 +252,8 @@ async function fetchData() {
     gridData = newGridData;
     coreData = newCoreData;
 
+    console.log('✅ data loaded', coreData);
+    
     // 👉 CHỈ DRAW KHI CÓ DATA
     if (currentTab === 'core' && coreData.price.bars.length > 0) {
       if (hasChanged || isFirstLoad) {
@@ -795,6 +799,23 @@ window.addEventListener('resize', () => {
 
 startCountdown();
 fetchData();
+</script>
+
+  <script>
+window.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 INIT APP');
+
+  // đảm bảo chạy fetch lần đầu
+  fetchData();
+
+  // backup: nếu fetch fail vẫn retry
+  setTimeout(() => {
+    if (!coreData) {
+      console.warn('⚠️ retry fetch...');
+      fetchData();
+    }
+  }, 3000);
+});
 </script>
 </body>
 </html>
