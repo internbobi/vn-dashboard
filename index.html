@@ -311,19 +311,14 @@ function startCountdown(meta) {
   if (!meta || !meta.next_update) return;
 
   const el = document.getElementById('countdown');
-
-  let next = new Date(meta.next_update);
+  const next = new Date(meta.next_update);
 
   function tick() {
     const now = new Date();
-
     let diff = Math.floor((next - now) / 1000);
 
-    // ✅ nếu hết giờ → nhảy sang chu kỳ tiếp theo
-    if (diff <= 0) {
-      next = new Date(now.getTime() + 10 * 60 * 1000);
-      diff = Math.floor((next - now) / 1000);
-    }
+    // ✅ chỉ clamp về 0, KHÔNG reset
+    if (diff < 0) diff = 0;
 
     const m = Math.floor(diff / 60);
     const s = diff % 60;
