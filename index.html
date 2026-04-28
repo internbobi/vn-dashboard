@@ -308,31 +308,35 @@ function setUpdated(ts) {
 // ════════════════════════════════════════════════════════════════════════════
 
 function startCountdown(meta) {
-  if (!meta || !meta.next_update) {
-    console.warn('⚠️ meta thiếu next_update');
-    return;
-  }
+  if (!meta || !meta.next_update) return;
 
   const el = document.getElementById('countdown');
 
+  let next = new Date(meta.next_update);
+
   function tick() {
     const now = new Date();
-    const next = new Date(meta.next_update);
 
     let diff = Math.floor((next - now) / 1000);
-    if (diff < 0) diff = 0;
+
+    // ✅ nếu hết giờ → nhảy sang chu kỳ tiếp theo
+    if (diff <= 0) {
+      next = new Date(now.getTime() + 10 * 60 * 1000);
+      diff = Math.floor((next - now) / 1000);
+    }
 
     const m = Math.floor(diff / 60);
     const s = diff % 60;
 
     el.textContent =
       'Next refresh in ' +
-      String(m).padStart(2,'0') + ':' +
-      String(s).padStart(2,'0');
+      String(m).padStart(2, '0') + ':' +
+      String(s).padStart(2, '0');
   }
 
   tick();
-  setInterval(tick, 1000);
+  clearInterval(window._cdTimer);
+  window._cdTimer = setInterval(tick, 1000);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
